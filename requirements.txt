@@ -3,3 +3,4 @@ streamlit-autorefresh>=1.0.1
 pandas>=2.0.0
 requests>=2.28.0
 plotly>=5.18.0
+pgeocode>=0.5.0
