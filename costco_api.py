@@ -68,13 +68,18 @@ def get_nominatim() -> pgeocode.Nominatim:
     return _geo_nominatim
 
 
-def haversine_np(lat1: float, lon1: float, lat2_array: np.ndarray, lon2_array: np.ndarray) -> np.ndarray:
+def haversine_np(
+    lat1: float, lon1: float, lat2_array: np.ndarray, lon2_array: np.ndarray
+) -> np.ndarray:
     """Vectorized Haversine distance in miles."""
     lat1_rad, lon1_rad = np.radians(lat1), np.radians(lon1)
     lat2_rad, lon2_rad = np.radians(lat2_array), np.radians(lon2_array)
     dlat = lat2_rad - lat1_rad
     dlon = lon2_rad - lon1_rad
-    a = np.sin(dlat / 2.0) ** 2 + np.cos(lat1_rad) * np.cos(lat2_rad) * np.sin(dlon / 2.0) ** 2
+    a = (
+        np.sin(dlat / 2.0) ** 2
+        + np.cos(lat1_rad) * np.cos(lat2_rad) * np.sin(dlon / 2.0) ** 2
+    )
     c = 2 * np.arcsin(np.sqrt(a))
     miles = 3958.8 * c
     return miles
@@ -87,7 +92,7 @@ def sync_all_stores_from_warehouserunner() -> List[Dict[str, Any]]:
     resp.raise_for_status()
     text = resp.text
 
-    chunks = re.findall(r'self\.__next_f\.push\(\[1,\s*\"(.*?)\"\]\)', text, re.DOTALL)
+    chunks = re.findall(r"self\.__next_f\.push\(\[1,\s*\"(.*?)\"\]\)", text, re.DOTALL)
     full_str = ""
     for c in chunks:
         try:
@@ -215,7 +220,9 @@ def find_nearby_costco_gas(
     valid_coords["distance_miles"] = np.round(distances, 1)
 
     # Filter within radius
-    within_radius = valid_coords[valid_coords["distance_miles"] <= radius_miles].sort_values("distance_miles")
+    within_radius = valid_coords[
+        valid_coords["distance_miles"] <= radius_miles
+    ].sort_values("distance_miles")
 
     # If none found within radius, fallback to closest 3 so the user always sees results
     if within_radius.empty:
@@ -229,9 +236,13 @@ def find_nearby_costco_gas(
     candidates = selected.to_dict(orient="records")
     wid_map = {str(s["id"]): s for s in candidates}
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(candidates) or 1) as executor:
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=len(candidates) or 1
+    ) as executor:
         future_to_wid = {
-            executor.submit(fetch_single_gas_price, str(s["id"]), s["name"]): str(s["id"])
+            executor.submit(fetch_single_gas_price, str(s["id"]), s["name"]): str(
+                s["id"]
+            )
             for s in candidates
         }
         prices_by_wid: Dict[str, Dict[str, Any]] = {}
@@ -253,7 +264,10 @@ def find_nearby_costco_gas(
     for s in candidates:
         wid_str = str(s["id"])
         price_info = prices_by_wid.get(wid_str, {})
-        has_gas = price_info.get("regular") is not None or price_info.get("premium") is not None
+        has_gas = (
+            price_info.get("regular") is not None
+            or price_info.get("premium") is not None
+        )
 
         item = {
             "warehouse_id": wid_str,
@@ -268,7 +282,9 @@ def find_nearby_costco_gas(
             "longitude": float(s["longitude"]),
             "regular": price_info.get("regular"),
             "premium": price_info.get("premium"),
-            "status": "Available" if has_gas else price_info.get("status", "No Gas Station"),
+            "status": (
+                "Available" if has_gas else price_info.get("status", "No Gas Station")
+            ),
             "has_gas": has_gas,
             "updated_at": price_info.get("updated_at", ""),
         }
@@ -276,12 +292,18 @@ def find_nearby_costco_gas(
 
     # Calculate best prices among stations with active pumps
     gas_stations = [s for s in results if s["has_gas"]]
-    cheapest_reg = min([s["regular"] for s in gas_stations if s["regular"] is not None], default=None)
-    cheapest_prem = min([s["premium"] for s in gas_stations if s["premium"] is not None], default=None)
+    cheapest_reg = min(
+        [s["regular"] for s in gas_stations if s["regular"] is not None], default=None
+    )
+    cheapest_prem = min(
+        [s["premium"] for s in gas_stations if s["premium"] is not None], default=None
+    )
 
     for s in results:
-        s["is_best_regular"] = (s["regular"] is not None and s["regular"] == cheapest_reg)
-        s["is_best_premium"] = (s["premium"] is not None and s["premium"] == cheapest_prem)
+        s["is_best_regular"] = s["regular"] is not None and s["regular"] == cheapest_reg
+        s["is_best_premium"] = (
+            s["premium"] is not None and s["premium"] == cheapest_prem
+        )
 
     return {
         "success": True,
@@ -297,6 +319,7 @@ def find_nearby_costco_gas(
 # ---------------------------------------------------------
 # User Locations Configuration
 # ---------------------------------------------------------
+
 
 def load_locations() -> Dict[str, str]:
     """Load the current list of locations (warehouse ID -> store name)."""
@@ -334,7 +357,9 @@ def reset_locations() -> Dict[str, str]:
     return locations
 
 
-def fetch_single_gas_price(warehouse_id: str, store_name: str = "", timeout: int = 10) -> Dict[str, Any]:
+def fetch_single_gas_price(
+    warehouse_id: str, store_name: str = "", timeout: int = 10
+) -> Dict[str, Any]:
     """Fetch live gas prices for a single Costco warehouse ID."""
     wid_str = str(warehouse_id).strip()
     url = f"https://www.costco.com/AjaxGetGasPricesService?warehouseid={wid_str}"
@@ -348,12 +373,20 @@ def fetch_single_gas_price(warehouse_id: str, store_name: str = "", timeout: int
 
         warehouse_data = data.get(wid_str)
 
-        if warehouse_data is not None and isinstance(warehouse_data, dict) and warehouse_data:
+        if (
+            warehouse_data is not None
+            and isinstance(warehouse_data, dict)
+            and warehouse_data
+        ):
             regular_val = warehouse_data.get("regular")
             premium_val = warehouse_data.get("premium")
 
-            reg_float = float(regular_val) if regular_val and regular_val != "N/A" else None
-            prem_float = float(premium_val) if premium_val and premium_val != "N/A" else None
+            reg_float = (
+                float(regular_val) if regular_val and regular_val != "N/A" else None
+            )
+            prem_float = (
+                float(premium_val) if premium_val and premium_val != "N/A" else None
+            )
 
             return {
                 "warehouse_id": wid_str,
@@ -406,15 +439,17 @@ def fetch_all_gas_prices(
                 results.append(res)
             except Exception as e:
                 wid = future_to_wid[future]
-                results.append({
-                    "warehouse_id": wid,
-                    "store_name": locations.get(wid, wid),
-                    "regular": None,
-                    "premium": None,
-                    "status": f"Failed: {e}",
-                    "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "raw": {},
-                })
+                results.append(
+                    {
+                        "warehouse_id": wid,
+                        "store_name": locations.get(wid, wid),
+                        "regular": None,
+                        "premium": None,
+                        "status": f"Failed: {e}",
+                        "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "raw": {},
+                    }
+                )
 
     results.sort(key=lambda x: x["store_name"])
     return results
@@ -423,6 +458,7 @@ def fetch_all_gas_prices(
 # ---------------------------------------------------------
 # Database Storage (SQLite)
 # ---------------------------------------------------------
+
 
 def init_db() -> None:
     """Initialize SQLite database for historical gas prices."""
@@ -455,29 +491,38 @@ def log_prices_to_db(prices_list: List[Dict[str, Any]]) -> int:
     rows_to_insert = []
     for item in prices_list:
         if item.get("regular") is not None or item.get("premium") is not None:
-            rows_to_insert.append((
-                item.get("updated_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-                item.get("store_name", ""),
-                item.get("warehouse_id", ""),
-                item.get("regular"),
-                item.get("premium"),
-            ))
+            rows_to_insert.append(
+                (
+                    item.get(
+                        "updated_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    ),
+                    item.get("store_name", ""),
+                    item.get("warehouse_id", ""),
+                    item.get("regular"),
+                    item.get("premium"),
+                )
+            )
 
     if not rows_to_insert:
         return 0
 
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
-        cursor.executemany("""
+        cursor.executemany(
+            """
             INSERT INTO gas_price_history (timestamp, store_name, warehouse_id, regular_price, premium_price)
             VALUES (?, ?, ?, ?, ?)
-        """, rows_to_insert)
+        """,
+            rows_to_insert,
+        )
         conn.commit()
 
     return len(rows_to_insert)
 
 
-def get_price_history(days: Optional[int] = None, warehouse_ids: Optional[List[str]] = None) -> pd.DataFrame:
+def get_price_history(
+    days: Optional[int] = None, warehouse_ids: Optional[List[str]] = None
+) -> pd.DataFrame:
     """Retrieve historical gas prices as a Pandas DataFrame."""
     init_db()
     query = """

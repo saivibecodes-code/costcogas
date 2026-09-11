@@ -26,7 +26,8 @@ st.set_page_config(
 )
 
 # Custom Styling (Costco blue: #005DAA, Costco red: #E31837)
-st.markdown("""
+st.markdown(
+    """
 <style>
     .metric-card {
         background: linear-gradient(135deg, #f8f9fa 0%, #edf2f7 100%);
@@ -91,7 +92,9 @@ st.markdown("""
         font-size: 0.8rem;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 # ---------------------------------------------------------
@@ -124,7 +127,9 @@ def do_fetch_prices(auto_log: bool = True) -> List[Dict[str, Any]]:
     with st.spinner("Fetching latest gas prices from Costco..."):
         prices = costco_api.fetch_all_gas_prices(locs)
         st.session_state["live_data"] = prices
-        st.session_state["last_refresh"] = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
+        st.session_state["last_refresh"] = datetime.now().strftime(
+            "%Y-%m-%d %I:%M:%S %p"
+        )
         if auto_log:
             costco_api.log_prices_to_db(prices)
     return prices
@@ -172,7 +177,9 @@ with st.sidebar:
     auto_refresh_mins = st.selectbox(
         "Auto-refresh interval:",
         options=[0, 1, 5, 15, 30, 60],
-        format_func=lambda x: "Off" if x == 0 else f"Every {x} minute{'s' if x > 1 else ''}",
+        format_func=lambda x: (
+            "Off" if x == 0 else f"Every {x} minute{'s' if x > 1 else ''}"
+        ),
         index=0,
         help="Automatically reloads the page to fetch current prices on a background timer.",
     )
@@ -180,7 +187,9 @@ with st.sidebar:
     if auto_refresh_mins > 0:
         interval_ms = auto_refresh_mins * 60 * 1000
         count = st_autorefresh(interval=interval_ms, key="costco_gas_autorefresh")
-        st.caption(f"⏱️ Auto-refresh active ({auto_refresh_mins} min cycle, refreshed {count} times).")
+        st.caption(
+            f"⏱️ Auto-refresh active ({auto_refresh_mins} min cycle, refreshed {count} times)."
+        )
 
     st.divider()
     st.caption(
@@ -202,14 +211,16 @@ st.markdown(
     f"**Last updated:** `{st.session_state['last_refresh'] or 'Fetching...'}`"
 )
 
-tab_zip, tab_live, tab_compare, tab_history, tab_calc, tab_manage = st.tabs([
-    "📍 Find Gas by ZIP Code",
-    "📋 Monitored Warehouses",
-    "📊 Price Comparison",
-    "📈 Price History & Trends",
-    "💡 Savings Calculator",
-    "⚙️ Manage Warehouses",
-])
+tab_zip, tab_live, tab_compare, tab_history, tab_calc, tab_manage = st.tabs(
+    [
+        "📍 Find Gas by ZIP Code",
+        "📋 Monitored Warehouses",
+        "📊 Price Comparison",
+        "📈 Price History & Trends",
+        "💡 Savings Calculator",
+        "⚙️ Manage Warehouses",
+    ]
+)
 
 
 # =========================================================
@@ -217,7 +228,9 @@ tab_zip, tab_live, tab_compare, tab_history, tab_calc, tab_manage = st.tabs([
 # =========================================================
 with tab_zip:
     st.subheader("📍 Find Nearby Costco Gas Stations by ZIP Code")
-    st.caption("Enter any 5-digit US ZIP code to locate nearby warehouses and fetch live gas pump prices in real time.")
+    st.caption(
+        "Enter any 5-digit US ZIP code to locate nearby warehouses and fetch live gas pump prices in real time."
+    )
 
     col_z1, col_z2, col_z3, col_z4 = st.columns([2, 1.5, 1.5, 1.5])
     with col_z1:
@@ -228,13 +241,19 @@ with tab_zip:
             placeholder="e.g. 75024, 98101, 90210",
         )
     with col_z2:
-        radius_input = st.slider("Search Radius (miles):", min_value=5, max_value=100, value=35, step=5)
+        radius_input = st.slider(
+            "Search Radius (miles):", min_value=5, max_value=100, value=35, step=5
+        )
     with col_z3:
-        max_stores_input = st.slider("Max Locations:", min_value=2, max_value=15, value=6, step=1)
+        max_stores_input = st.slider(
+            "Max Locations:", min_value=2, max_value=15, value=6, step=1
+        )
     with col_z4:
         st.write("")
         st.write("")
-        btn_search_zip = st.button("🔍 Find Nearby Gas", width="stretch", type="primary")
+        btn_search_zip = st.button(
+            "🔍 Find Nearby Gas", width="stretch", type="primary"
+        )
 
     # Quick preset chips
     st.markdown("**Quick Preset ZIPs:**")
@@ -263,8 +282,12 @@ with tab_zip:
     # Trigger search if button clicked or first time
     if btn_search_zip or (st.session_state["zip_search_results"] is None and zip_input):
         st.session_state["current_zip_input"] = zip_input
-        with st.spinner(f"Finding Costco stations near {zip_input} and querying live fuel prices..."):
-            res = costco_api.find_nearby_costco_gas(zip_input, radius_miles=radius_input, max_stores=max_stores_input)
+        with st.spinner(
+            f"Finding Costco stations near {zip_input} and querying live fuel prices..."
+        ):
+            res = costco_api.find_nearby_costco_gas(
+                zip_input, radius_miles=radius_input, max_stores=max_stores_input
+            )
             st.session_state["zip_search_results"] = res
 
     zip_res = st.session_state["zip_search_results"]
@@ -283,14 +306,18 @@ with tab_zip:
                 f"### 📍 Costco Stations Near **{z_info['city']}, {z_info['state']} ({z_info['postal_code']})**"
             )
             if zip_res.get("radius_exceeded"):
-                st.info(f"Note: No Costco warehouses found within {radius_input} miles. Showing the closest available locations.")
+                st.info(
+                    f"Note: No Costco warehouses found within {radius_input} miles. Showing the closest available locations."
+                )
 
             # Summary Cards
             zc1, zc2, zc3 = st.columns(3)
             with zc1:
                 if cheapest_r is not None:
                     # Find store with cheapest regular
-                    cheapest_r_store = next((s for s in nearby_stores if s["regular"] == cheapest_r), None)
+                    cheapest_r_store = next(
+                        (s for s in nearby_stores if s["regular"] == cheapest_r), None
+                    )
                     st.markdown(
                         f"""
                         <div class="best-deal-card">
@@ -306,7 +333,9 @@ with tab_zip:
 
             with zc2:
                 if cheapest_p is not None:
-                    cheapest_p_store = next((s for s in nearby_stores if s["premium"] == cheapest_p), None)
+                    cheapest_p_store = next(
+                        (s for s in nearby_stores if s["premium"] == cheapest_p), None
+                    )
                     st.markdown(
                         f"""
                         <div class="best-deal-card">
@@ -344,23 +373,33 @@ with tab_zip:
                 # Prepare map dataframe
                 map_rows = []
                 for s in nearby_stores:
-                    label_price = f"Reg: ${s['regular']:.3f}" if s["regular"] else "No Gas"
-                    map_rows.append({
-                        "latitude": s["latitude"],
-                        "longitude": s["longitude"],
-                        "name": f"{s['store_name']} ({label_price})",
-                    })
+                    label_price = (
+                        f"Reg: ${s['regular']:.3f}" if s["regular"] else "No Gas"
+                    )
+                    map_rows.append(
+                        {
+                            "latitude": s["latitude"],
+                            "longitude": s["longitude"],
+                            "name": f"{s['store_name']} ({label_price})",
+                        }
+                    )
                 # Add user search zip center
-                map_rows.append({
-                    "latitude": z_info["latitude"],
-                    "longitude": z_info["longitude"],
-                    "name": f"📍 You ({z_info['postal_code']})",
-                })
+                map_rows.append(
+                    {
+                        "latitude": z_info["latitude"],
+                        "longitude": z_info["longitude"],
+                        "name": f"📍 You ({z_info['postal_code']})",
+                    }
+                )
                 df_map = pd.DataFrame(map_rows)
-                st.map(df_map, latitude="latitude", longitude="longitude", size=20, zoom=9)
+                st.map(
+                    df_map, latitude="latitude", longitude="longitude", size=20, zoom=9
+                )
 
             with col_list:
-                st.markdown(f"#### ⛽ Nearby Rates ({len(nearby_stores)} Warehouses Found)")
+                st.markdown(
+                    f"#### ⛽ Nearby Rates ({len(nearby_stores)} Warehouses Found)"
+                )
 
                 # Table of nearby results
                 nearby_table_rows = []
@@ -374,14 +413,16 @@ with tab_zip:
                     if s.get("is_best_premium"):
                         prem_str += " 🏆 BEST"
 
-                    nearby_table_rows.append({
-                        "Store": s["store_name"],
-                        "ID": s["warehouse_id"],
-                        "Distance": f"{s['distance_miles']} mi",
-                        "Regular": reg_str,
-                        "Premium": prem_str,
-                        "Address": f"{s['street']}, {s['city']}, {s['state']} {s['zip_code']}",
-                    })
+                    nearby_table_rows.append(
+                        {
+                            "Store": s["store_name"],
+                            "ID": s["warehouse_id"],
+                            "Distance": f"{s['distance_miles']} mi",
+                            "Regular": reg_str,
+                            "Premium": prem_str,
+                            "Address": f"{s['street']}, {s['city']}, {s['state']} {s['zip_code']}",
+                        }
+                    )
 
                 df_nearby_table = pd.DataFrame(nearby_table_rows)
                 st.dataframe(df_nearby_table, width="stretch", hide_index=True)
@@ -393,7 +434,11 @@ with tab_zip:
                         "Select station to add to monitored list:",
                         options=[s["warehouse_id"] for s in nearby_stores],
                         format_func=lambda wid: next(
-                            (f"{s['store_name']} (#{wid}) - {s['distance_miles']} mi" for s in nearby_stores if s["warehouse_id"] == wid),
+                            (
+                                f"{s['store_name']} (#{wid}) - {s['distance_miles']} mi"
+                                for s in nearby_stores
+                                if s["warehouse_id"] == wid
+                            ),
                             wid,
                         ),
                     )
@@ -401,14 +446,25 @@ with tab_zip:
                     st.write("")
                     st.write("")
                     if st.button("➕ Add to My Monitored List", key="btn_add_from_zip"):
-                        chosen = next((s for s in nearby_stores if s["warehouse_id"] == wid_to_add_zip), None)
+                        chosen = next(
+                            (
+                                s
+                                for s in nearby_stores
+                                if s["warehouse_id"] == wid_to_add_zip
+                            ),
+                            None,
+                        )
                         if chosen:
                             cur_locs = st.session_state["locations"]
                             cur_locs[wid_to_add_zip] = chosen["store_name"]
                             costco_api.save_locations(cur_locs)
                             st.session_state["locations"] = cur_locs
-                            do_fetch_prices(auto_log=st.session_state["auto_log_enabled"])
-                            st.success(f"Added '{chosen['store_name']}' to your monitored warehouses!")
+                            do_fetch_prices(
+                                auto_log=st.session_state["auto_log_enabled"]
+                            )
+                            st.success(
+                                f"Added '{chosen['store_name']}' to your monitored warehouses!"
+                            )
                             st.rerun()
 
             # Plotly comparison bar chart for nearby stores
@@ -419,9 +475,21 @@ with tab_zip:
                 for s in valid_nearby_plot:
                     label = f"{s['short_name']} ({s['distance_miles']} mi)"
                     if s["regular"] is not None:
-                        p_rows.append({"Store": label, "Price ($)": s["regular"], "Grade": "Regular (87)"})
+                        p_rows.append(
+                            {
+                                "Store": label,
+                                "Price ($)": s["regular"],
+                                "Grade": "Regular (87)",
+                            }
+                        )
                     if s["premium"] is not None:
-                        p_rows.append({"Store": label, "Price ($)": s["premium"], "Grade": "Premium (93)"})
+                        p_rows.append(
+                            {
+                                "Store": label,
+                                "Price ($)": s["premium"],
+                                "Grade": "Premium (93)",
+                            }
+                        )
                 df_plot_nearby = pd.DataFrame(p_rows)
 
                 fig_nearby = px.bar(
@@ -432,7 +500,10 @@ with tab_zip:
                     barmode="group",
                     text_auto=".3f",
                     title=f"Gas Prices Near {z_info['city']}, {z_info['state']} (Sorted by Distance)",
-                    color_discrete_map={"Regular (87)": "#005DAA", "Premium (93)": "#E31837"},
+                    color_discrete_map={
+                        "Regular (87)": "#005DAA",
+                        "Premium (93)": "#E31837",
+                    },
                 )
                 fig_nearby.update_layout(
                     xaxis_tickangle=-25,
@@ -452,7 +523,9 @@ with tab_live:
     st.subheader("Current Pump Rates (Monitored Locations)")
 
     raw_live_data = st.session_state["live_data"] or []
-    filtered_live = [item for item in raw_live_data if item["store_name"] in selected_stores]
+    filtered_live = [
+        item for item in raw_live_data if item["store_name"] in selected_stores
+    ]
     df_live = pd.DataFrame(filtered_live)
 
     # Compute KPIs
@@ -548,32 +621,50 @@ with tab_live:
     st.markdown("<br>", unsafe_allow_html=True)
 
     if df_live.empty:
-        st.warning("No warehouse locations selected. Please select at least one in the sidebar.")
+        st.warning(
+            "No warehouse locations selected. Please select at least one in the sidebar."
+        )
     else:
         display_df = df_live.copy()
 
         if cheapest_reg is not None:
             display_df["Regular Diff ($)"] = display_df["regular"].apply(
-                lambda x: f"+${(x - cheapest_reg):.3f}" if pd.notnull(x) and (x - cheapest_reg) > 0 else ("BEST DEAL 🏆" if pd.notnull(x) else "N/A")
+                lambda x: (
+                    f"+${(x - cheapest_reg):.3f}"
+                    if pd.notnull(x) and (x - cheapest_reg) > 0
+                    else ("BEST DEAL 🏆" if pd.notnull(x) else "N/A")
+                )
             )
         if cheapest_prem is not None:
             display_df["Premium Diff ($)"] = display_df["premium"].apply(
-                lambda x: f"+${(x - cheapest_prem):.3f}" if pd.notnull(x) and (x - cheapest_prem) > 0 else ("BEST DEAL 🏆" if pd.notnull(x) else "N/A")
+                lambda x: (
+                    f"+${(x - cheapest_prem):.3f}"
+                    if pd.notnull(x) and (x - cheapest_prem) > 0
+                    else ("BEST DEAL 🏆" if pd.notnull(x) else "N/A")
+                )
             )
 
-        formatted_table = pd.DataFrame({
-            "Store Name": display_df["store_name"],
-            "Warehouse ID": display_df["warehouse_id"],
-            "Regular ($)": display_df["regular"].apply(lambda x: f"${x:.3f}" if pd.notnull(x) else "N/A"),
-            "Regular vs Best": display_df.get("Regular Diff ($)", "N/A"),
-            "Premium ($)": display_df["premium"].apply(lambda x: f"${x:.3f}" if pd.notnull(x) else "N/A"),
-            "Premium vs Best": display_df.get("Premium Diff ($)", "N/A"),
-            "Status": display_df["status"],
-            "Updated At": display_df["updated_at"],
-        })
+        formatted_table = pd.DataFrame(
+            {
+                "Store Name": display_df["store_name"],
+                "Warehouse ID": display_df["warehouse_id"],
+                "Regular ($)": display_df["regular"].apply(
+                    lambda x: f"${x:.3f}" if pd.notnull(x) else "N/A"
+                ),
+                "Regular vs Best": display_df.get("Regular Diff ($)", "N/A"),
+                "Premium ($)": display_df["premium"].apply(
+                    lambda x: f"${x:.3f}" if pd.notnull(x) else "N/A"
+                ),
+                "Premium vs Best": display_df.get("Premium Diff ($)", "N/A"),
+                "Status": display_df["status"],
+                "Updated At": display_df["updated_at"],
+            }
+        )
 
         sort_order = display_df["regular"].fillna(999.0)
-        formatted_table = formatted_table.iloc[sort_order.argsort()].reset_index(drop=True)
+        formatted_table = formatted_table.iloc[sort_order.argsort()].reset_index(
+            drop=True
+        )
 
         st.dataframe(
             formatted_table,
@@ -588,20 +679,27 @@ with tab_live:
                     "Premium vs Best",
                     help="Difference in price per gallon compared to the cheapest premium pump.",
                 ),
-            }
+            },
         )
 
         col_act1, col_act2 = st.columns([1, 4])
         with col_act1:
-            csv_export = display_df[[
-                "updated_at", "store_name", "warehouse_id", "regular", "premium"
-            ]].rename(columns={
-                "updated_at": "Timestamp",
-                "store_name": "Store Name",
-                "warehouse_id": "Warehouse ID",
-                "regular": "Regular Pump ($)",
-                "premium": "Premium Pump ($)"
-            }).to_csv(index=False).encode("utf-8")
+            csv_export = (
+                display_df[
+                    ["updated_at", "store_name", "warehouse_id", "regular", "premium"]
+                ]
+                .rename(
+                    columns={
+                        "updated_at": "Timestamp",
+                        "store_name": "Store Name",
+                        "warehouse_id": "Warehouse ID",
+                        "regular": "Regular Pump ($)",
+                        "premium": "Premium Pump ($)",
+                    }
+                )
+                .to_csv(index=False)
+                .encode("utf-8")
+            )
 
             st.download_button(
                 label="📥 Export Current CSV",
@@ -619,7 +717,9 @@ with tab_compare:
     st.subheader("Price Comparison Across Monitored Locations")
 
     raw_live_data = st.session_state["live_data"] or []
-    filtered_live = [item for item in raw_live_data if item["store_name"] in selected_stores]
+    filtered_live = [
+        item for item in raw_live_data if item["store_name"] in selected_stores
+    ]
     df_live = pd.DataFrame(filtered_live)
 
     if not df_live.empty:
@@ -634,10 +734,9 @@ with tab_compare:
                 var_name="Fuel Grade",
                 value_name="Price ($)",
             )
-            melted["Fuel Grade"] = melted["Fuel Grade"].map({
-                "regular": "Regular (87)",
-                "premium": "Premium (93)"
-            })
+            melted["Fuel Grade"] = melted["Fuel Grade"].map(
+                {"regular": "Regular (87)", "premium": "Premium (93)"}
+            )
 
             fig = px.bar(
                 melted,
@@ -646,17 +745,23 @@ with tab_compare:
                 color="Fuel Grade",
                 barmode="group",
                 title="Costco Gas Prices by Location (Sorted by Regular Price)",
-                labels={"store_name": "Costco Warehouse", "Price ($)": "Price ($/Gallon)"},
+                labels={
+                    "store_name": "Costco Warehouse",
+                    "Price ($)": "Price ($/Gallon)",
+                },
                 color_discrete_map={
                     "Regular (87)": "#005DAA",
-                    "Premium (93)": "#E31837"
+                    "Premium (93)": "#E31837",
                 },
                 text_auto=".3f",
             )
             fig.update_layout(
                 xaxis_tickangle=-30,
                 legend_title_text="Grade",
-                yaxis_range=[max(0.0, plot_df["regular"].min() - 0.20), plot_df["premium"].max() + 0.15],
+                yaxis_range=[
+                    max(0.0, plot_df["regular"].min() - 0.20),
+                    plot_df["premium"].max() + 0.15,
+                ],
                 hovermode="x unified",
                 margin=dict(l=20, r=20, t=50, b=80),
             )
@@ -669,7 +774,10 @@ with tab_compare:
                 x="store_name",
                 y="spread",
                 title="Price Difference Between Premium and Regular at Each Station",
-                labels={"store_name": "Costco Warehouse", "spread": "Premium Surcharge ($/gal)"},
+                labels={
+                    "store_name": "Costco Warehouse",
+                    "spread": "Premium Surcharge ($/gal)",
+                },
                 color="spread",
                 color_continuous_scale="Blues",
                 text_auto=".3f",
@@ -733,7 +841,11 @@ with tab_history:
                     color="store_name",
                     markers=True,
                     title="Regular Gas Price Trend Over Time",
-                    labels={"timestamp": "Time", "regular_price": "Regular Price ($)", "store_name": "Store"},
+                    labels={
+                        "timestamp": "Time",
+                        "regular_price": "Regular Price ($)",
+                        "store_name": "Store",
+                    },
                 )
                 st.plotly_chart(fig_hist, width="stretch")
             elif grade_filter == "Premium Pump ($)":
@@ -744,7 +856,11 @@ with tab_history:
                     color="store_name",
                     markers=True,
                     title="Premium Gas Price Trend Over Time",
-                    labels={"timestamp": "Time", "premium_price": "Premium Price ($)", "store_name": "Store"},
+                    labels={
+                        "timestamp": "Time",
+                        "premium_price": "Premium Price ($)",
+                        "store_name": "Store",
+                    },
                 )
                 st.plotly_chart(fig_hist, width="stretch")
             else:
@@ -757,7 +873,11 @@ with tab_history:
                         color="store_name",
                         markers=True,
                         title="Regular Gas Price Trend Over Time",
-                        labels={"timestamp": "Time", "regular_price": "Regular Price ($)", "store_name": "Store"},
+                        labels={
+                            "timestamp": "Time",
+                            "regular_price": "Regular Price ($)",
+                            "store_name": "Store",
+                        },
                     )
                     st.plotly_chart(fig_reg, width="stretch")
                 with tab_g2:
@@ -768,18 +888,24 @@ with tab_history:
                         color="store_name",
                         markers=True,
                         title="Premium Gas Price Trend Over Time",
-                        labels={"timestamp": "Time", "premium_price": "Premium Price ($)", "store_name": "Store"},
+                        labels={
+                            "timestamp": "Time",
+                            "premium_price": "Premium Price ($)",
+                            "store_name": "Store",
+                        },
                     )
                     st.plotly_chart(fig_prem, width="stretch")
 
             st.markdown("#### Historical Records Log")
-            export_df = history_df.copy().rename(columns={
-                "timestamp": "Timestamp",
-                "store_name": "Store Name",
-                "warehouse_id": "Warehouse ID",
-                "regular_price": "Regular Pump ($)",
-                "premium_price": "Premium Pump ($)",
-            })
+            export_df = history_df.copy().rename(
+                columns={
+                    "timestamp": "Timestamp",
+                    "store_name": "Store Name",
+                    "warehouse_id": "Warehouse ID",
+                    "regular_price": "Regular Pump ($)",
+                    "premium_price": "Premium Pump ($)",
+                }
+            )
 
             st.dataframe(
                 export_df.sort_values(by="Timestamp", ascending=False),
@@ -799,8 +925,12 @@ with tab_history:
                 )
             with col_clear:
                 with st.expander("⚠️ Database Maintenance"):
-                    confirm_delete = st.checkbox("Confirm clearing all recorded price history")
-                    if st.button("Clear Price History Database", disabled=not confirm_delete):
+                    confirm_delete = st.checkbox(
+                        "Confirm clearing all recorded price history"
+                    )
+                    if st.button(
+                        "Clear Price History Database", disabled=not confirm_delete
+                    ):
                         costco_api.clear_price_history()
                         st.success("Historical price database has been reset.")
                         st.rerun()
@@ -818,15 +948,20 @@ with tab_history:
 # =========================================================
 with tab_calc:
     st.subheader("💡 Costco Gas Savings Calculator")
-    st.caption("Calculate how much you save on each fill-up by choosing the optimal Costco location.")
+    st.caption(
+        "Calculate how much you save on each fill-up by choosing the optimal Costco location."
+    )
 
     raw_live_data = st.session_state["live_data"] or []
-    filtered_live = [item for item in raw_live_data if item["store_name"] in selected_stores]
+    filtered_live = [
+        item for item in raw_live_data if item["store_name"] in selected_stores
+    ]
     df_live = pd.DataFrame(filtered_live)
 
     if not df_live.empty:
         available_stores = [
-            row["store_name"] for _, row in df_live.dropna(subset=["regular", "premium"]).iterrows()
+            row["store_name"]
+            for _, row in df_live.dropna(subset=["regular", "premium"]).iterrows()
         ]
         if len(available_stores) >= 2:
             calc_col1, calc_col2 = st.columns(2)
@@ -861,7 +996,9 @@ with tab_calc:
                 )
 
                 cheapest_store_name = (
-                    cheapest_reg_store if selected_grade == "Regular" else cheapest_prem_store
+                    cheapest_reg_store
+                    if selected_grade == "Regular"
+                    else cheapest_prem_store
                 )
                 default_target_idx = (
                     available_stores.index(cheapest_store_name)
@@ -928,13 +1065,17 @@ with tab_calc:
                         f"saves you **${savings_per_tank:.2f}** per fill-up (**${annual_savings:.2f}** per year with weekly visits)!"
                     )
                 elif savings_per_tank == 0:
-                    st.info("Both selected Costco locations currently have the exact same price for this grade.")
+                    st.info(
+                        "Both selected Costco locations currently have the exact same price for this grade."
+                    )
                 else:
                     st.warning(
                         f"**{comparison_store}** is currently **${abs(diff_per_gal):.3f} / gal** higher than **{baseline_store}**."
                     )
         else:
-            st.info("Need at least two stores with valid price data to run the calculator.")
+            st.info(
+                "Need at least two stores with valid price data to run the calculator."
+            )
     else:
         st.warning("No price data available.")
 
@@ -953,22 +1094,37 @@ with tab_manage:
     with col_m1:
         st.markdown("#### ➕ Add New Warehouse")
         with st.form("add_warehouse_form", clear_on_submit=True):
-            new_wid = st.text_input("Warehouse ID (e.g. 1097, 636):", placeholder="e.g. 636").strip()
-            new_name = st.text_input("Store Name / Label:", placeholder="e.g. Dallas (Coit Rd) Costco").strip()
-            test_first = st.checkbox("Test live API connection before adding", value=True)
-            submit_add = st.form_submit_button("➕ Add Warehouse", type="primary", width="stretch")
+            new_wid = st.text_input(
+                "Warehouse ID (e.g. 1097, 636):", placeholder="e.g. 636"
+            ).strip()
+            new_name = st.text_input(
+                "Store Name / Label:", placeholder="e.g. Dallas (Coit Rd) Costco"
+            ).strip()
+            test_first = st.checkbox(
+                "Test live API connection before adding", value=True
+            )
+            submit_add = st.form_submit_button(
+                "➕ Add Warehouse", type="primary", width="stretch"
+            )
 
             if submit_add:
                 if not new_wid:
                     st.error("Please enter a valid warehouse ID.")
                 elif new_wid in current_locs:
-                    st.warning(f"Warehouse ID {new_wid} is already in your tracking list ({current_locs[new_wid]}).")
+                    st.warning(
+                        f"Warehouse ID {new_wid} is already in your tracking list ({current_locs[new_wid]})."
+                    )
                 else:
                     valid = True
                     if test_first:
                         with st.spinner(f"Verifying warehouse {new_wid}..."):
-                            test_res = costco_api.fetch_single_gas_price(new_wid, new_name or f"Costco #{new_wid}")
-                            if test_res.get("regular") is None and test_res.get("premium") is None:
+                            test_res = costco_api.fetch_single_gas_price(
+                                new_wid, new_name or f"Costco #{new_wid}"
+                            )
+                            if (
+                                test_res.get("regular") is None
+                                and test_res.get("premium") is None
+                            ):
                                 valid = False
                                 st.error(
                                     f"Warehouse {new_wid} did not return valid gas prices ({test_res.get('status')}). "
@@ -985,13 +1141,16 @@ with tab_manage:
                         costco_api.save_locations(current_locs)
                         st.session_state["locations"] = current_locs
                         do_fetch_prices(auto_log=st.session_state["auto_log_enabled"])
-                        st.success(f"Added '{final_name}' (ID: {new_wid}) successfully!")
+                        st.success(
+                            f"Added '{final_name}' (ID: {new_wid}) successfully!"
+                        )
                         st.rerun()
 
         st.markdown("#### ⚡ Quick Add Popular DFW Stations")
         st.caption("Click to add nearby stations not in your current list:")
         presets_to_offer = {
-            wid: name for wid, name in costco_api.POPULAR_DFW_PRESETS.items()
+            wid: name
+            for wid, name in costco_api.POPULAR_DFW_PRESETS.items()
             if wid not in current_locs
         }
         if presets_to_offer:
@@ -1014,7 +1173,9 @@ with tab_manage:
                 options=list(current_locs.keys()),
                 format_func=lambda wid: f"{current_locs[wid]} (ID: {wid})",
             )
-            if st.button("🗑️ Remove Selected Warehouse", width="stretch", type="secondary"):
+            if st.button(
+                "🗑️ Remove Selected Warehouse", width="stretch", type="secondary"
+            ):
                 del current_locs[wid_to_remove]
                 costco_api.save_locations(current_locs)
                 st.session_state["locations"] = current_locs
@@ -1034,7 +1195,9 @@ with tab_manage:
 
         st.divider()
         st.markdown("#### 🔄 Sync 640+ Store Directory")
-        st.caption("Re-fetch and geocode the nationwide store directory from warehouserunner.com/stores.")
+        st.caption(
+            "Re-fetch and geocode the nationwide store directory from warehouserunner.com/stores."
+        )
         if st.button("🔄 Sync Store Directory Now", width="stretch"):
             with st.spinner("Re-syncing directory from warehouserunner.com/stores..."):
                 synced = costco_api.sync_all_stores_from_warehouserunner()
@@ -1043,8 +1206,10 @@ with tab_manage:
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("#### Current Active Locations List")
-    locs_df = pd.DataFrame([
-        {"Warehouse ID": wid, "Store Name": name}
-        for wid, name in current_locs.items()
-    ])
+    locs_df = pd.DataFrame(
+        [
+            {"Warehouse ID": wid, "Store Name": name}
+            for wid, name in current_locs.items()
+        ]
+    )
     st.dataframe(locs_df, width="stretch", hide_index=True)
